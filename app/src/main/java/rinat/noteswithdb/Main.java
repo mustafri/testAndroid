@@ -1,6 +1,7 @@
 package rinat.noteswithdb;
 
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -22,6 +23,7 @@ import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.lang.reflect.Array;
 import java.util.concurrent.TimeUnit;
 
 public class Main extends AppCompatActivity implements View.OnClickListener, LoaderManager.LoaderCallbacks<Cursor> {
@@ -31,8 +33,8 @@ public class Main extends AppCompatActivity implements View.OnClickListener, Loa
     ListView listMain;
     Button addNote;
     final int CM_DELETE_ID =3;
-
-
+    final int DIALOG = 1;
+    final int ABOUT = 2;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -153,9 +155,60 @@ public class Main extends AppCompatActivity implements View.OnClickListener, Loa
                 startActivity(intent);
                 break;
             case R.id.settingsButton:
-                break;
+
+                showDialog(DIALOG);
+
+                 break;
         }
+      
     }
+    Dialog dialog;
+    @Override
+    protected Dialog onCreateDialog(int id) {
+        switch (id) {
+            case DIALOG:
+                String[] listSettings = {"Delete all notes", "About", "Cancel"};
+                Log.d("Mylog", "Create");
+                AlertDialog.Builder adb = new AlertDialog.Builder(this);
+                adb.setCancelable(true);  // чтобы пользователь не смог нажать назад
+                adb.setTitle("Settings");
+                adb.setSingleChoiceItems(listSettings, -1, myClickListener);
+                dialog = adb.create();return dialog;
+            case ABOUT:
+                AlertDialog.Builder adb_about = new AlertDialog.Builder(this);
+                adb_about.setTitle("About");
+                adb_about.setMessage("Product of Rinat Mustafaev, version 1.0");
+                adb_about.setPositiveButton("OK", null);
+                dialog = adb_about.create();return dialog;
+
+        }
+        return super.onCreateDialog(id);
+
+    }
+
+
+    DialogInterface.OnClickListener myClickListener = new DialogInterface.OnClickListener() {
+        public void onClick(DialogInterface dialog, int which) {
+            ListView lv = ((AlertDialog) dialog).getListView();
+            switch (lv.getCheckedItemPosition()) {
+                case 0:
+                    Log.d("Mylog", "pos = " + lv.getCheckedItemPosition());
+                    db.delAllRec();
+                    // получаем новый курсор с данными
+                    getSupportLoaderManager().getLoader(0).forceLoad();
+                    Toast.makeText(Main.this, "All notes were deleted", Toast.LENGTH_LONG).show();
+                    break;
+                case 1:
+                    Log.d("Mylog", "pos = " + lv.getCheckedItemPosition());
+                    showDialog(ABOUT);
+                    break;
+                case 2:
+                    Log.d("Mylog", "pos = " + lv.getCheckedItemPosition());
+                    removeDialog(DIALOG); // удаляет и забывает о диалоге
+                    break;
+            }
+        }
+    };
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle bndl) {

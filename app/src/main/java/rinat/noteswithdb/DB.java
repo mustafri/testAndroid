@@ -65,6 +65,10 @@ public class DB {
     public void delRec(long id) {
         mDB.delete(DB_TABLE, COLUMN_ID + " = " + id, null);
     }
+    // удалить все из DB_TABLE
+    public void delAllRec() {
+        mDB.delete(DB_TABLE,null,null);
+    }
 
     // обновить запись из DB_TABLE
     public void updRec(long id,String topic, String note) {
