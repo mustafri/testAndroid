@@ -53,6 +53,14 @@ public class DB {
         return mDB.query(DB_TABLE, null, null, null, null, null, null);
     }
 
+    // получить данные по поиску из таблицы DB_TABLE
+    public Cursor getSearchData(String inputText) {
+        String[] a = new String[1];
+        a[0]       = "%"+inputText + "%";
+        return mDB.rawQuery("SELECT * FROM "+ DB_TABLE+ " WHERE "+ COLUMN_NOTE+" LIKE ?", a);
+
+    }
+
     // добавить запись в DB_TABLE
     public void addRec(String topic, String note) {
         ContentValues cv = new ContentValues();

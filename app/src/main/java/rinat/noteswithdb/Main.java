@@ -18,7 +18,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.CursorAdapter;
+import android.widget.FilterQueryProvider;
 import android.widget.ListView;
+import android.widget.SearchView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -32,6 +35,8 @@ public class Main extends AppCompatActivity implements View.OnClickListener, Loa
     SimpleCursorAdapter scAdapter;
     ListView listMain;
     Button addNote;
+    SearchView search;
+
     final int CM_DELETE_ID =3;
     final int DIALOG = 1;
     final int ABOUT = 2;
@@ -43,19 +48,52 @@ public class Main extends AppCompatActivity implements View.OnClickListener, Loa
         db = new DB(this);
         db.open();
 
-        String[] from = new String[]{DB.COLUMN_TOPIC, DB.COLUMN_NOTE};
-        int[] to = new int[]{R.id.topicText, R.id.noteText};
+
+
+        final String[] from = new String[]{DB.COLUMN_TOPIC, DB.COLUMN_NOTE};
+        final int[] to = new int[]{R.id.topicText, R.id.noteText};
 
         scAdapter = new SimpleCursorAdapter(this, R.layout.item, null, from, to, 0);
         listMain = (ListView) findViewById(R.id.listMain);
         listMain.setAdapter(scAdapter);
+        listMain.setTextFilterEnabled(true);
 
         addNote = (Button) findViewById(R.id.addNoteButton);
         addNote.setOnClickListener(this);
         registerForContextMenu(listMain);
-
         getSupportLoaderManager().initLoader(0, null, this);
 
+        scAdapter.setFilterQueryProvider(new FilterQueryProvider() { // что изменять в LIST
+            @Override
+            public Cursor runQuery(CharSequence constraint) {
+                Log.d("Mylog", "constraint=" + constraint);
+
+                return db.getSearchData(constraint.toString());
+            }
+        });
+
+
+
+        search = (SearchView)findViewById(R.id.searchView);
+        search.setOnQueryTextListener(new SearchView.OnQueryTextListener() {//слушает что просисходит в поиске
+
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                Toast.makeText(Main.this, query, Toast.LENGTH_SHORT).show();
+
+                scAdapter.getFilter().filter(query.toString());
+               // getSupportLoaderManager().getLoader(0).forceLoad();
+                //scAdapter.notifyDataSetChanged();
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                scAdapter.getFilter().filter(newText.toString());
+               // Toast.makeText(Main.this, newText, Toast.LENGTH_SHORT).show();
+                return false;
+            }
+        });
 
         listMain.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View view,
@@ -65,13 +103,15 @@ public class Main extends AppCompatActivity implements View.OnClickListener, Loa
                 TextView getTopic = (TextView) view.findViewById(R.id.topicText);
                 TextView getNote = (TextView) view.findViewById(R.id.noteText);
                 intent.putExtra("Id",id);
-                Log.d("myLog","id="+id);
+                Log.d("Mylog","id="+id);
                 intent.putExtra("Topic", getTopic.getText());
                 intent.putExtra("Note", getNote.getText());
                 startActivity(intent);
 
             }
         });
+
+
 
     }
 
@@ -143,7 +183,7 @@ public class Main extends AppCompatActivity implements View.OnClickListener, Loa
     @Override
     protected void onResume() {
         super.onResume();
-        getSupportLoaderManager().getLoader(0).forceLoad();
+       // getSupportLoaderManager().getLoader(0).forceLoad();
     }
 
     @Override
@@ -170,9 +210,10 @@ public class Main extends AppCompatActivity implements View.OnClickListener, Loa
                 String[] listSettings = {"Delete all notes", "About", "Cancel"};
                 Log.d("Mylog", "Create");
                 AlertDialog.Builder adb = new AlertDialog.Builder(this);
-                adb.setCancelable(true);  // чтобы пользователь не смог нажать назад
+                adb.setCancelable(true);  // чтобы пользователь  смог нажать назад
                 adb.setTitle("Settings");
-                adb.setSingleChoiceItems(listSettings, -1, myClickListener);
+
+                adb.setItems(listSettings, myClickListener);
                 dialog = adb.create();return dialog;
             case ABOUT:
                 AlertDialog.Builder adb_about = new AlertDialog.Builder(this);
@@ -189,21 +230,21 @@ public class Main extends AppCompatActivity implements View.OnClickListener, Loa
 
     DialogInterface.OnClickListener myClickListener = new DialogInterface.OnClickListener() {
         public void onClick(DialogInterface dialog, int which) {
-            ListView lv = ((AlertDialog) dialog).getListView();
-            switch (lv.getCheckedItemPosition()) {
+            //ListView lv = ((AlertDialog) dialog).getListView();
+            switch (which) {
                 case 0:
-                    Log.d("Mylog", "pos = " + lv.getCheckedItemPosition());
+                    Log.d("Mylog", "pos = " + which);
                     db.delAllRec();
                     // получаем новый курсор с данными
                     getSupportLoaderManager().getLoader(0).forceLoad();
                     Toast.makeText(Main.this, "All notes were deleted", Toast.LENGTH_LONG).show();
                     break;
                 case 1:
-                    Log.d("Mylog", "pos = " + lv.getCheckedItemPosition());
+                    Log.d("Mylog", "pos = " + which);
                     showDialog(ABOUT);
                     break;
                 case 2:
-                    Log.d("Mylog", "pos = " + lv.getCheckedItemPosition());
+                    Log.d("Mylog", "pos = " + which);
                     removeDialog(DIALOG); // удаляет и забывает о диалоге
                     break;
             }
@@ -246,4 +287,6 @@ public class Main extends AppCompatActivity implements View.OnClickListener, Loa
             return cursor;
         }
     }
+
+
 }
